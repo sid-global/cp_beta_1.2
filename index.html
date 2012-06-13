@@ -1,0 +1,211 @@
+<!DOCTYPE HTML>
+<html>
+<head>
+<meta charset="utf-8">
+<title>Cor Processu Mobile</title>
+<link href="ccs/jquery-mobile/jquery.mobile-1.0a3.min.css" rel="stylesheet" type="text/css">
+<script src="ccs/jquery-mobile/jquery-1.5.min.js" type="text/javascript"></script>
+<script src="ccs/jquery-mobile/interpretadorAjax.js" type="text/javascript"></script>
+<script src="ccs/jquery-mobile/jquery.mobile-1.0a3.min.js" type="text/javascript"></script>
+<script >
+	var usuarioConectado = '';
+	var empinst = '';
+	var estatus = '';
+	var tipo = '';
+	var nro_ent = 0;
+	
+	
+	function buscar (sql) {
+		alert (sql);
+		document.getElementById("buscar").innerHTML="";
+		var res = '';
+		var html = '<div data-role="collapsible-set"><div data-role="collapsible" data-theme="a">';
+		$.getJSON("http://nube4u.com/sid_servicios/json/busquedaOS.php?jsoncallback=?", {sql:sql}, function(data) {
+			$.each(data, function(i, item) {	
+				if (res != item.resp) {
+					if(res == ''){
+						html+= '<h3>'+ item.resp +'</h3><ul data-role="listview">';
+						res= item.resp;
+					} else{
+						html+= '</ul></div><div data-role="collapsible" data-theme="a">';
+						html+= '<h3>'+ item.resp +'</h3><ul data-role="listview">';
+						res= item.resp;
+					}
+				}
+				html = html + '<li><a onclick="ingresarTrack(' + item.sec + ')" id="' + item.sec + '"> TAREA #'+item.sec+'</a><p> '+item.id+'; '+ item.resp+ ';' + item.estatus +'</p></li>';	
+			});
+			html = html + '</ul></div></div>';
+			$(html).appendTo("#buscar");
+			alert(html);
+			location.href="index.html\#consulta_os_busqueda";
+		});
+	}
+	
+	function ingresarTrack(tarea){
+		
+		var html='<label for="ingresarTrack" class="select">Tarea: '+ tarea +'</label> <br>';
+		//alert(id);
+		
+		$.getJSON("http://nube4u.com/sid_servicios/json/preIngresoTarea.php?jsoncallback=?", {tarea:tarea}, function(data) {
+			
+			$.each(data, function(i, item) {
+				if(i==0){
+					html+= item.id +'<br><form method= "post" onsubmit="ingresar()"> <label for="Obs" >Observacion:</label><textarea name= "Obs" > </textarea><br><label for="selectEstatus" class="select">Estatus:</label><select name="selectEstatus" id="selectEstatus">' ;	
+				}	
+				 html+='<option value="'+item.estatus_sec+'">'+item.estatus+'</option>';	
+			});
+				
+			html+='</select><input type="submit" value="envia" name="envia"><br></form>'
+			$(html).appendTo("#images_ingresar");
+			location.href="index.html\#ingresar";
+		});
+			
+	} 
+	
+	function ingresar(){
+		alert('ingreesar');
+		alert( $('#selectEstatus').val());
+		//alert( $_POST[0]);
+		location.href="index.html\#menu_principal";
+	}
+	
+	
+	$(document).ready(function(){
+		// Se define la clase sid, q redirecciona a la página de la empresa
+		$("a.sid").click(function(){
+			var pagina="http://www.integradores.net"
+			location.href=pagina	
+		});
+		
+		// Se define la clase login, que ejecuta la validación de los datos del login
+		$("a.login").click(function(){
+			var usuario = document.getElementById("login").value;
+			var psw = document.getElementById("password").value;
+			
+			// Se validan los datos del usuario
+			$.getJSON("http://nube4u.com/sid_servicios/json/validarLogin.php?jsoncallback=?", {usuario:usuario , psw:psw}, function(data){
+	 			var login = data.result;
+				if (login == 'OK') {
+					usuarioConectado = usuario;
+					localStorage.nombre = usuario;
+					alert( localStorage.nombre );
+					location.href="index.html\#menu_principal";
+				} else if (login == 'BD') {
+					alert("Se produjo un error al conectar con la BD");	
+				} else if (login == 'US') {
+					alert ("El usuario no se encuentra registrado en la base de datos o se encuentra inactivo.");
+				} else if (login == 'NO') {
+					alert ("Contraseña inválida.");
+				}
+				
+      		});
+		});
+		
+		// Se define la clase Salir, que desconecta al usuario de la aplicación
+		$("a.salir").click(function(){
+			usuarioConectado = '';
+			location.href="index.html";	
+		});
+		
+		$("a.consultaOS").click(function(){
+			var url = "ConsultaOS.html";
+			window.open(url,"_self");
+		});
+		
+		$("a.consultaTS").click(function(){
+			var url = "ConsultaTimesheet.html";
+			window.open(url,"_self");
+		});
+		
+		$("a.busqueda_tarea").click(function(){
+			var tarea_nro = document.getElementById("tarea_sec_b").value;
+			alert(tarea_nro + " - " + empinst + " - " + estatus + " - " + tipo);
+			var sql = "SELECT cor_crm_os.*, cor_crm_estatus_avance.*, name FROM cor_crm_os, cor_crm_estatus_avance, cor_seg_users WHERE cor_os_estatus_avancesec = cor_estatus_avancesec AND cor_os_responsable=login";
+			if (tarea_nro != '') {
+				sql = sql + " AND cor_ossec = " + tarea_nro;	
+			}
+			if (empinst != '' && empinst != 'N') {
+				sql = sql + " AND cor_os_empinstsec = " + empinst;
+			}
+			if (estatus != '' && estatus != 'N') {
+				sql = sql + " AND cor_os_estatus_avancesec = " + estatus;
+			}
+			if (tipo != '' && tipo != 'N') {
+				sql = sql + " AND cor_os_tiposec = " + tipo;
+			}
+			buscar(sql);
+		});
+	});
+</script>
+</head>
+
+<body>
+<!-- Login -->
+<div data-role="page" id="Login">
+	<div data-role="header">
+		<h1>Cor Processu Mobile</h1>
+	</div>
+  	<div data-role="content" align="center">
+	  	<input type="text" name="login" id="login" value="" placeholder="Usuario"  />
+      	<input type="password" name="password" id="password" value="" placeholder="Contraseña"/>
+    	<a class="login" data-role="button" data-theme="a">Login</a>
+ 	</div>
+	<div data-role="navbar" data-iconpos="top">
+		<ul>
+        	<li data-theme="a"><a class="sid" data-theme="a">www.Integradores.net</a></li>
+            <li data-theme="a"><a class="sid" data-theme="a">SID, C.A.</a></li>
+         </ul>
+	</div>
+</div>
+<!------- Login -->
+
+<!-- Menu Principal -->
+<div data-role="page" id="menu_principal">
+	<div data-role="header">
+		<h1>Menú Principal</h1>
+	</div>
+	<div data-role="content">	
+		<ul data-role="listview" id="opcionesMenu">
+			<li><a class="consultaOS">Consulta Tareas</a></li>
+            <!--<li><a href="#ingresarOS" onClick="llenarCboEmpInst()">Ingresar Tareas</a></li>-->
+			<li><a class="consultaTS">TimeSheet</a></li>
+		</ul>		
+	</div>
+	<div data-theme="a" data-role="footer"  >
+    	<div data-role="navbar" data-iconpos="top">
+        	<ul>
+            	<li><a class="sid">SID, C.A.</a></li>
+            	<li><a class="salir">Salir</a></li>
+         	</ul>
+      	</div>
+   	</div>
+</div>
+<!------- Menu Principal -->
+
+
+
+<!-- Ingresar Tracking -->
+<div data-role="page" id="ingresar">
+	<div data-role="header">
+		<h1>Ingresar Tracking</h1>
+	</div>
+  	<form id="frm_ingresar_OS">
+		<div data-role="content" id="ingresarOSC" align="center">
+        	<div id="images_ingresar">
+            </div>
+   	  	</div>
+    </form>
+	<div data-theme="a" data-role="footer">
+   	  <div data-role="navbar" data-iconpos="top">
+         <ul>
+           	<li><a href="#menu_principal" data-theme="" data-icon="">Regresar</a></li>
+            <li><a class="sid">SID, C.A.</a></li>
+            <li><a href="#Login" data-theme="" data-icon="">Salir</a></li>
+         </ul>
+      </div>
+   </div>
+</div>
+<!------- Ingresar Tracking -->
+
+</body>
+</html>
